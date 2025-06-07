@@ -1,12 +1,41 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import random, threading
+import random
+import string
 
 app = Flask(__name__)
 CORS(app)
 
-commands = {}
+# Store: code → user_id and user_id → command
 link_codes = {}
+commands = {}
+
+def generate_code(length=6):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
+@app.route("/link-code", methods=["POST"])
+def link_code():
+    data = request.json
+    user_id = data.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    # Reuse if already linked
+    for code, uid in link_codes.items():
+        if uid == user_id:
+            return jsonify({"code": code}), 200
+
+    code = generate_code()
+    link_codes[code] = user_id
+    return jsonify({"code": code}), 200
+
+@app.route("/get-user-id", methods=["GET"])
+def get_user_id():
+    code = request.args.get("code", "").strip().upper()
+    user_id = link_codes.get(code)
+    if user_id:
+        return jsonify({"user_id": user_id}), 200
+    return jsonify({"error": "Invalid code"}), 404
 
 @app.route("/push", methods=["POST"])
 def push_command():
@@ -26,21 +55,3 @@ def get_command():
         commands[user_id] = None
         return jsonify({"command": command}), 200
     return jsonify({"command": None}), 200
-
-@app.route("/link-code", methods=["POST"])
-def create_link_code():
-    data = request.json
-    user_id = data.get("user_id")
-    if not user_id:
-        return jsonify({"error": "Missing user_id"}), 400
-
-    code = ''.join(random.choices("ABCDEFGHJKLMNPQRSTUVWXYZ23456789", k=4))
-    link_codes[code] = user_id
-    threading.Timer(300, lambda: link_codes.pop(code, None)).start()
-    return jsonify({"code": code}), 200
-
-@app.route("/get-user-id", methods=["GET"])
-def get_user_id_from_code():
-    code = request.args.get("code")
-    user_id = link_codes.get(code)
-    return jsonify({"user_id": user_id if user_id else None}), 200
