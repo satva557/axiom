@@ -32,16 +32,38 @@ def get_user_id():
     if user_id:
         return jsonify({"user_id": user_id}), 200
     return jsonify({"error": "Invalid code"}), 404
+from flask import Flask, request, jsonify
 
+app = Flask(__name__)
+
+# In-memory fake storage for now
+link_codes = {}
+
+@app.route("/")
+def home():
+    return "SPARK AI is running", 200
+
+# This is the route Alexa skill will hit to pull the link code
+@app.route("/pull/<user_id>", methods=["GET"])
+def pull_code(user_id):
+    code = link_codes.get(user_id)
+    if code:
+        return jsonify({"code": code})
+    else:
+        return jsonify({"error": "No code found"}), 404
+
+# This is the route you call to store a code for a user
 @app.route("/push", methods=["POST"])
-def push_command():
+def push_code():
     data = request.json
     user_id = data.get("user_id")
-    command = data.get("command")
-    if user_id and command:
-        commands[user_id] = command
-        return jsonify({"status": "success"}), 200
-    return jsonify({"error": "Invalid request"}), 400
+    code = data.get("code")
+    if user_id and code:
+        link_codes[user_id] = code
+        return jsonify({"status": "saved"}), 200
+    else:
+        return jsonify({"error": "Missing user_id or code"}), 400
+
 
 @app.route("/get", methods=["GET"])
 def get_command():
