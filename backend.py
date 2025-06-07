@@ -1,7 +1,12 @@
 from flask import Flask, request, jsonify
+import os
 
 app = Flask(__name__)
 user_commands = {}
+
+@app.route("/")
+def home():
+    return "AXIOM Backend Online"
 
 @app.route("/push", methods=["POST"])
 def push():
@@ -20,5 +25,7 @@ def pull(user_id):
     command = user_commands.pop(user_id, None)
     return jsonify({"command": command or ""}), 200
 
+# ✅ Run on host=0.0.0.0 and PORT from env (required by Render)
 if __name__ == "__main__":
-    app.run()
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
