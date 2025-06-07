@@ -20,15 +20,11 @@ def link_code():
     if not user_id:
         return jsonify({"error": "Missing user_id"}), 400
 
-    # Reuse if already linked
-    for code, uid in link_codes.items():
-        if uid == user_id:
-            return jsonify({"code": code}), 200
-
-    code = generate_code()
+    # generate 6-digit code
+    code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
     link_codes[code] = user_id
     return jsonify({"code": code}), 200
-
+    
 @app.route("/get-user-id", methods=["GET"])
 def get_user_id():
     code = request.args.get("code", "").strip().upper()
@@ -55,3 +51,7 @@ def get_command():
         commands[user_id] = None
         return jsonify({"command": command}), 200
     return jsonify({"command": None}), 200
+
+# ✅ Run on port 10001
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10001, debug=True)
